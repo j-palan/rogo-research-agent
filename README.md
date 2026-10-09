@@ -62,15 +62,15 @@ Nine files matter:
 
 | File | What it is |
 | --- | --- |
-| `src/server.ts` | Express server, one `POST /api/chat` endpoint |
-| `src/agent.ts` | The agent loop — system prompt, tool-use loop, final answer |
-| `src/tools.ts` | Tool schemas and tool execution |
-| `src/data.ts` | All the research data. Fictional, local, deterministic |
-| `src/ui/App.tsx` | The chat interface |
-| `src/ui/main.tsx`, `src/ui/styles.css` | Mount point and styling |
+| `src/server/index.ts` | Express server, one `POST /api/chat` endpoint |
+| `src/server/agent.ts` | The agent loop — system prompt, tool-use loop, final answer |
+| `src/server/tools.ts` | Tool schemas and tool execution |
+| `src/server/data.ts` | All the research data. Fictional, local, deterministic |
+| `src/client/App.tsx` | The chat interface |
+| `src/client/main.tsx`, `src/client/styles.css` | Mount point and styling |
 | `vite.config.ts`, `package.json` | Vite dev server proxies `/api` to port 8787 |
 
-There are five fictional companies. The tools are backed entirely by `src/data.ts` —
+There are five fictional companies. The tools are backed entirely by `src/server/data.ts` —
 no network calls, no credentials beyond the model key, nothing to set up. Each tool
 sleeps for a few hundred milliseconds to stand in for a real API.
 
