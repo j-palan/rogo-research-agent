@@ -3,6 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ChatMessage, ChatStreamEvent } from "../shared/chat.ts";
 import { ChatSidebar } from "./ChatSidebar.tsx";
+import { ResearchIcon, SendIcon, SidebarIcon } from "./icons.tsx";
 import {
   createChat,
   loadChatState,
@@ -13,10 +14,22 @@ import {
 } from "./chat-store.ts";
 
 const EXAMPLES = [
-  "Compare Acme and Globex and tell me which one appears to be growing faster.",
-  "What are the biggest risks Umbrella Health flags in its filings?",
-  "How is Initech's subscription transition going?",
-  "Which company in the universe is growing fastest?",
+  {
+    label: "Compare companies",
+    prompt: "Compare Acme and Globex and tell me which one appears to be growing faster.",
+  },
+  {
+    label: "Review risk factors",
+    prompt: "What are the biggest risks Umbrella Health flags in its filings?",
+  },
+  {
+    label: "Analyze a transition",
+    prompt: "How is Initech's subscription transition going?",
+  },
+  {
+    label: "Screen the universe",
+    prompt: "Which company in the universe is growing fastest?",
+  },
 ];
 
 function inputValue(input: unknown, key: string): string | undefined {
@@ -114,6 +127,9 @@ export function App() {
   const [chatState, setChatState] = useState(() => loadChatState());
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => !window.matchMedia("(max-width: 760px)").matches,
+  );
   const activeChat = chatState.chats.find(
     (chat) => chat.id === chatState.activeChatId,
   );
@@ -131,7 +147,10 @@ export function App() {
   }
 
   function startNewChat() {
-    if (activeChat?.messages.length === 0) return;
+    if (activeChat?.messages.length === 0) {
+      closeSidebarOnMobile();
+      return;
+    }
 
     const chat = createChat();
     setChatState((prev) => ({
@@ -139,11 +158,17 @@ export function App() {
       activeChatId: chat.id,
     }));
     setInput("");
+    closeSidebarOnMobile();
   }
 
   function selectChat(id: string) {
     setChatState((prev) => ({ ...prev, activeChatId: id }));
     setInput("");
+    closeSidebarOnMobile();
+  }
+
+  function closeSidebarOnMobile() {
+    if (window.matchMedia("(max-width: 760px)").matches) setSidebarOpen(false);
   }
 
   async function send(question: string) {
@@ -301,71 +326,143 @@ export function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${sidebarOpen ? "sidebar-open" : "sidebar-closed"}`}>
       <ChatSidebar
         chats={chatState.chats}
         activeChatId={chatState.activeChatId}
+        open={sidebarOpen}
         onNewChat={startNewChat}
         onSelectChat={selectChat}
+        onClose={() => setSidebarOpen(false)}
       />
 
+      {sidebarOpen && (
+        <button
+          className="sidebar-backdrop"
+          type="button"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close chat history"
+        />
+      )}
+
       <main className="app">
-        <header>
-          <h1>Rogo Research</h1>
-          <p>Ask a question about a company in our coverage universe.</p>
+        <header className="topbar">
+          <button
+            className="icon-button sidebar-toggle"
+            type="button"
+            onClick={() => setSidebarOpen((open) => !open)}
+            aria-controls="chat-sidebar"
+            aria-expanded={sidebarOpen}
+            aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+            title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+          >
+            <SidebarIcon />
+          </button>
+          <div className="topbar-title">
+            <h1>{activeChat?.title ?? "New research"}</h1>
+            <p>Company intelligence workspace</p>
+          </div>
+          <span className="coverage-status">
+            <span aria-hidden="true" />
+            Research ready
+          </span>
         </header>
 
-        <div className="transcript">
+        <div className={`transcript${messages.length === 0 ? " empty" : ""}`}>
           {messages.length === 0 && (
-            <div className="examples">
-              {EXAMPLES.map((example) => (
-                <button key={example} onClick={() => send(example)}>
-                  {example}
-                </button>
-              ))}
-            </div>
+            <section className="welcome" aria-labelledby="welcome-title">
+              <span className="welcome-mark" aria-hidden="true">
+                <ResearchIcon />
+              </span>
+              <p className="eyebrow">Research workspace</p>
+              <h2 id="welcome-title">What would you like to investigate?</h2>
+              <p className="welcome-copy">
+                Ask about companies, compare financial performance, or search filings
+                across the coverage universe.
+              </p>
+              <div className="examples" aria-label="Example research questions">
+                {EXAMPLES.map((example) => (
+                  <button key={example.prompt} onClick={() => send(example.prompt)}>
+                    <strong>{example.label}</strong>
+                    <span>{example.prompt}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
           )}
 
           {messages.map((message) => (
             <div
               key={message.id}
-              className={`bubble ${message.role}`}
+              className={`message-row ${message.role}`}
               aria-busy={message.pending || undefined}
             >
-              {message.role === "assistant" ? (
-                <>
-                  <ResearchActivity message={message} />
-                  {message.text && (
-                    <div className="markdown">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
-                    </div>
-                  )}
-                </>
-              ) : (
-                message.text
+              {message.role === "assistant" && (
+                <span className="assistant-avatar" aria-hidden="true">
+                  <ResearchIcon />
+                </span>
               )}
+              <div className={`message-content ${message.role}`}>
+                <span className="message-author">
+                  {message.role === "assistant" ? "Rogo Research" : "You"}
+                </span>
+                <div className={`bubble ${message.role}`}>
+                  {message.role === "assistant" ? (
+                    <>
+                      <ResearchActivity message={message} />
+                      {message.text && (
+                        <div className="markdown">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    message.text
+                  )}
+                </div>
+              </div>
             </div>
           ))}
         </div>
 
-        <form
-          className="composer"
-          onSubmit={(e) => {
-            e.preventDefault();
-            send(input);
-          }}
-        >
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask a research question…"
-            aria-label="Research question"
-            disabled={busy}
-          />
-          <button type="submit" disabled={busy}>
-            Send
-          </button>
-        </form>
+        <div className="composer-dock">
+          <form
+            className="composer"
+            onSubmit={(e) => {
+              e.preventDefault();
+              send(input);
+            }}
+          >
+            <label className="sr-only" htmlFor="research-question">
+              Research question
+            </label>
+            <textarea
+              id="research-question"
+              rows={1}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  e.currentTarget.form?.requestSubmit();
+                }
+              }}
+              placeholder="Ask Rogo about a company, filing, or financial trend…"
+              disabled={busy}
+            />
+            <button
+              className="send-button"
+              type="submit"
+              disabled={busy || !input.trim()}
+            >
+              <SendIcon />
+              <span className="sr-only">Send question</span>
+            </button>
+          </form>
+          <p className="composer-hint">
+            Enter to send · Shift + Enter for a new line
+          </p>
+        </div>
       </main>
     </div>
   );
