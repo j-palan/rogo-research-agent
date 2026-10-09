@@ -48,7 +48,7 @@ ${companies
 
 export type AgentEvent = AgentProgressEvent;
 
-export interface AgentResult {
+interface AgentResult {
   answer: string;
   iterations: number;
 }

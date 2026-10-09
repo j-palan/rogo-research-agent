@@ -1,6 +1,6 @@
 import type { ChatMessage } from "../shared/chat.ts";
 
-export interface ToolActivity {
+interface ToolActivity {
   id: string;
   label: string;
   status: "running" | "complete" | "failed";
@@ -41,7 +41,7 @@ export function createChat(
   return { id, title: "New chat", messages: [], updatedAt: now };
 }
 
-export function createInitialChatState(): ChatState {
+function createInitialChatState(): ChatState {
   const chat = createChat();
   return { chats: [chat], activeChatId: chat.id };
 }

@@ -44,7 +44,7 @@ export function ChatSidebar({
           </span>
         </div>
         <button
-          className="icon-button sidebar-close"
+          className="icon-button"
           type="button"
           onClick={onClose}
           aria-label="Hide sidebar"
@@ -54,12 +54,10 @@ export function ChatSidebar({
         </button>
       </div>
 
-      <div className="sidebar-actions">
-        <button className="new-chat" type="button" onClick={onNewChat}>
-          <PlusIcon />
-          New chat
-        </button>
-      </div>
+      <button className="new-chat" type="button" onClick={onNewChat}>
+        <PlusIcon />
+        New chat
+      </button>
 
       <nav className="chat-history" aria-label="Previous chats">
         <p className="chat-history-label">Previous chats</p>

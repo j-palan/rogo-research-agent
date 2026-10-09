@@ -171,10 +171,6 @@ summary:focus-visible {
   background: var(--surface-muted);
 }
 
-.sidebar-actions {
-  padding-bottom: 2px;
-}
-
 .new-chat {
   width: 100%;
   min-height: 44px;

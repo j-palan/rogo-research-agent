@@ -326,7 +326,7 @@ export function App() {
   }
 
   return (
-    <div className={`app-shell ${sidebarOpen ? "sidebar-open" : "sidebar-closed"}`}>
+    <div className={`app-shell${sidebarOpen ? "" : " sidebar-closed"}`}>
       <ChatSidebar
         chats={chatState.chats}
         activeChatId={chatState.activeChatId}
@@ -348,7 +348,7 @@ export function App() {
       <main className="app">
         <header className="topbar">
           <button
-            className="icon-button sidebar-toggle"
+            className="icon-button"
             type="button"
             onClick={() => setSidebarOpen((open) => !open)}
             aria-controls="chat-sidebar"

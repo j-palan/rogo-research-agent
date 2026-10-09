@@ -5,7 +5,7 @@
  * Figures are in USD millions unless stated otherwise. Fiscal years end Dec 31.
  */
 
-export interface Company {
+interface Company {
   name: string;
   ticker: string;
   sector: string;
@@ -17,7 +17,7 @@ export interface Company {
   filings: { id: string; form: string; period: string; filedOn: string }[];
 }
 
-export interface AnnualFigures {
+interface AnnualFigures {
   fiscalYear: number;
   revenue: number | null;
   grossMargin: number | null;
@@ -26,14 +26,14 @@ export interface AnnualFigures {
   freeCashFlow: number | null;
 }
 
-export interface QuarterlyFigures {
+interface QuarterlyFigures {
   period: string;
   revenue: number;
   grossMargin: number;
   operatingIncome: number;
 }
 
-export interface FinancialRecord {
+interface FinancialRecord {
   company: string;
   ticker: string;
   currency: string;
@@ -50,7 +50,7 @@ export interface FinancialRecord {
   warnings?: string[];
 }
 
-export interface ResearchDocument {
+interface ResearchDocument {
   id: string;
   company: string;
   form: string;

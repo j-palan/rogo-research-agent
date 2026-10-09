@@ -66,8 +66,10 @@ Key paths:
 | `src/server/agent.ts` | The agent loop — system prompt, tool-use loop, final answer |
 | `src/server/tools.ts` | Tool schemas and tool execution |
 | `src/server/data.ts` | All the research data. Fictional, local, deterministic |
-| `src/client/App.tsx` | The chat interface |
-| `src/client/main.tsx`, `src/client/styles.css` | Mount point and styling |
+| `src/client/App.tsx` | Conversation UI, streaming state and request handling |
+| `src/client/ChatSidebar.tsx`, `src/client/chat-store.ts` | Chat navigation and local persistence |
+| `src/client/icons.tsx`, `src/client/styles.css` | Shared UI icons and styling |
+| `src/client/main.tsx` | React mount point |
 | `src/shared/chat.ts` | Chat types shared by the client and server |
 | `src/evals/research.ts` | Live behavioral evals and latency/tool benchmarks |
 | `vite.config.ts`, `package.json` | Vite dev server proxies `/api` to port 8787 |
