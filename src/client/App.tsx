@@ -1,4 +1,6 @@
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { ChatMessage } from "../shared/chat.ts";
 
 const EXAMPLES = [
@@ -63,7 +65,11 @@ export function App() {
 
         {messages.map((message, i) => (
           <div key={i} className={`bubble ${message.role}`}>
-            {message.text}
+            {message.role === "assistant" ? (
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
+            ) : (
+              message.text
+            )}
           </div>
         ))}
 

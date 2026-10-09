@@ -67,7 +67,6 @@ header p {
   border-radius: 12px;
   font-size: 14px;
   line-height: 1.55;
-  white-space: pre-wrap;
   max-width: 88%;
 }
 
@@ -75,12 +74,115 @@ header p {
   align-self: flex-end;
   background: #12181f;
   color: #fff;
+  white-space: pre-wrap;
 }
 
 .bubble.assistant {
   align-self: flex-start;
   background: #fff;
   border: 1px solid #e4e8ed;
+  overflow-wrap: anywhere;
+}
+
+.bubble.assistant > :first-child {
+  margin-top: 0;
+}
+
+.bubble.assistant > :last-child {
+  margin-bottom: 0;
+}
+
+.bubble.assistant p,
+.bubble.assistant ul,
+.bubble.assistant ol,
+.bubble.assistant blockquote,
+.bubble.assistant pre,
+.bubble.assistant table {
+  margin: 0 0 12px;
+}
+
+.bubble.assistant h1,
+.bubble.assistant h2,
+.bubble.assistant h3,
+.bubble.assistant h4 {
+  margin: 16px 0 8px;
+  line-height: 1.3;
+}
+
+.bubble.assistant h1 {
+  font-size: 19px;
+}
+
+.bubble.assistant h2 {
+  font-size: 17px;
+}
+
+.bubble.assistant h3,
+.bubble.assistant h4 {
+  font-size: 15px;
+}
+
+.bubble.assistant ul,
+.bubble.assistant ol {
+  padding-left: 22px;
+}
+
+.bubble.assistant li + li {
+  margin-top: 4px;
+}
+
+.bubble.assistant a {
+  color: #145ea8;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.bubble.assistant code {
+  padding: 2px 5px;
+  border-radius: 4px;
+  background: #eef1f4;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.bubble.assistant pre {
+  overflow-x: auto;
+  padding: 12px;
+  border: 1px solid #dde2e8;
+  border-radius: 8px;
+  background: #f6f7f9;
+}
+
+.bubble.assistant pre code {
+  padding: 0;
+  background: none;
+}
+
+.bubble.assistant blockquote {
+  padding-left: 12px;
+  border-left: 3px solid #c7d0da;
+  color: #52606d;
+}
+
+.bubble.assistant table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.bubble.assistant th,
+.bubble.assistant td {
+  padding: 7px 9px;
+  border: 1px solid #dde2e8;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.bubble.assistant th {
+  background: #f6f7f9;
+  font-weight: 600;
 }
 
 .bubble.pending {
