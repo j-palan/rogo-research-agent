@@ -56,8 +56,7 @@ it("runs a tool batch concurrently and returns results in request order despite 
         { type: "tool_use", id: "third", name: "getFinancials", input: { company: "Umbrella Health" } },
       ],
     })
-    .mockResolvedValueOnce({ content: [{ type: "text", text: "Draft answer" }] })
-    .mockResolvedValueOnce({ content: [{ type: "text", text: "Edited answer" }] });
+    .mockResolvedValueOnce({ content: [{ type: "text", text: "Draft answer" }] });
 
   const events: AgentEvent[] = [];
   const run = runAgent("Compare these companies", (event) => events.push(event));
@@ -70,7 +69,8 @@ it("runs a tool batch concurrently and returns results in request order despite 
   second.reject(new Error("financials unavailable"));
   first.resolve({ company: "Acme Corp" });
 
-  await expect(run).resolves.toEqual({ answer: "Edited answer", iterations: 2 });
+  await expect(run).resolves.toEqual({ answer: "Draft answer", iterations: 2 });
+  expect(mocks.createMessage).toHaveBeenCalledTimes(2);
 
   const request = mocks.createMessage.mock.calls[1][0] as {
     messages: { role: string; content: unknown }[];
