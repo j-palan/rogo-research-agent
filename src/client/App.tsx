@@ -3,7 +3,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ChatMessage, ChatStreamEvent } from "../shared/chat.ts";
 import { ChatSidebar } from "./ChatSidebar.tsx";
-import { ResearchIcon, SendIcon, SidebarIcon } from "./icons.tsx";
+import { SendIcon, SidebarIcon } from "./icons.tsx";
 import {
   createChat,
   deleteChat,
@@ -122,6 +122,59 @@ function ResearchActivity({ message }: { message: TranscriptMessage }) {
         </ul>
       )}
     </details>
+  );
+}
+
+function Composer({
+  input,
+  busy,
+  home = false,
+  onInputChange,
+  onSend,
+}: {
+  input: string;
+  busy: boolean;
+  home?: boolean;
+  onInputChange: (value: string) => void;
+  onSend: () => void;
+}) {
+  return (
+    <div className={`composer-dock${home ? " home" : ""}`}>
+      <form
+        className="composer"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSend();
+        }}
+      >
+        <label className="sr-only" htmlFor="research-question">
+          Research question
+        </label>
+        <textarea
+          id="research-question"
+          rows={1}
+          value={input}
+          onChange={(event) => onInputChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              event.currentTarget.form?.requestSubmit();
+            }
+          }}
+          placeholder="Ask Rogo about a company, filing, or financial trend…"
+          disabled={busy}
+        />
+        <button
+          className="send-button"
+          type="submit"
+          disabled={busy || !input.trim()}
+        >
+          <SendIcon />
+          <span className="sr-only">Send question</span>
+        </button>
+      </form>
+      <p className="composer-hint">Enter to send · Shift + Enter for a new line</p>
+    </div>
   );
 }
 
@@ -380,22 +433,36 @@ export function App() {
         <div className={`transcript${messages.length === 0 ? " empty" : ""}`}>
           {messages.length === 0 && (
             <section className="welcome" aria-labelledby="welcome-title">
-              <span className="welcome-mark" aria-hidden="true">
-                <ResearchIcon />
-              </span>
               <h2 id="welcome-title">What would you like to investigate?</h2>
               <p className="welcome-copy">
                 Ask about companies, compare financial performance, or search filings
                 across the coverage universe.
               </p>
-              <div className="examples" aria-label="Example research questions">
-                {EXAMPLES.map((example) => (
-                  <button key={example.prompt} onClick={() => send(example.prompt)}>
-                    <strong>{example.label}</strong>
-                    <span>{example.prompt}</span>
-                  </button>
-                ))}
-              </div>
+              <Composer
+                input={input}
+                busy={busy}
+                home
+                onInputChange={setInput}
+                onSend={() => send(input)}
+              />
+              <details className="examples">
+                <summary>
+                  <span>Example prompts</span>
+                  <small>{EXAMPLES.length} ideas</small>
+                </summary>
+                <div className="example-list" aria-label="Example research questions">
+                  {EXAMPLES.map((example) => (
+                    <button
+                      key={example.prompt}
+                      onClick={() => send(example.prompt)}
+                      title={example.prompt}
+                    >
+                      <strong>{example.label}</strong>
+                      <span>{example.prompt}</span>
+                    </button>
+                  ))}
+                </div>
+              </details>
             </section>
           )}
 
@@ -405,11 +472,6 @@ export function App() {
               className={`message-row ${message.role}`}
               aria-busy={message.pending || undefined}
             >
-              {message.role === "assistant" && (
-                <span className="assistant-avatar" aria-hidden="true">
-                  <ResearchIcon />
-                </span>
-              )}
               <div className={`message-content ${message.role}`}>
                 <span className="message-author">
                   {message.role === "assistant" ? "Rogo Research" : "You"}
@@ -433,44 +495,14 @@ export function App() {
           ))}
         </div>
 
-        <div className="composer-dock">
-          <form
-            className="composer"
-            onSubmit={(e) => {
-              e.preventDefault();
-              send(input);
-            }}
-          >
-            <label className="sr-only" htmlFor="research-question">
-              Research question
-            </label>
-            <textarea
-              id="research-question"
-              rows={1}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  e.currentTarget.form?.requestSubmit();
-                }
-              }}
-              placeholder="Ask Rogo about a company, filing, or financial trend…"
-              disabled={busy}
-            />
-            <button
-              className="send-button"
-              type="submit"
-              disabled={busy || !input.trim()}
-            >
-              <SendIcon />
-              <span className="sr-only">Send question</span>
-            </button>
-          </form>
-          <p className="composer-hint">
-            Enter to send · Shift + Enter for a new line
-          </p>
-        </div>
+        {messages.length > 0 && (
+          <Composer
+            input={input}
+            busy={busy}
+            onInputChange={setInput}
+            onSend={() => send(input)}
+          />
+        )}
       </main>
     </div>
   );
