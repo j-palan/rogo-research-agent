@@ -1,22 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ChatMessage, ChatStreamEvent } from "../shared/chat.ts";
-
-interface ToolActivity {
-  id: string;
-  label: string;
-  status: "running" | "complete" | "failed";
-  ms?: number;
-  message?: string;
-}
-
-interface TranscriptMessage extends ChatMessage {
-  id: string;
-  pending?: boolean;
-  phase?: string;
-  activity?: ToolActivity[];
-}
+import { ChatSidebar } from "./ChatSidebar.tsx";
+import {
+  createChat,
+  loadChatState,
+  saveChatState,
+  titleFromMessage,
+  type ChatSession,
+  type TranscriptMessage,
+} from "./chat-store.ts";
 
 const EXAMPLES = [
   "Compare Acme and Globex and tell me which one appears to be growing faster.",
@@ -117,14 +111,46 @@ function ResearchActivity({ message }: { message: TranscriptMessage }) {
 }
 
 export function App() {
-  const [messages, setMessages] = useState<TranscriptMessage[]>([]);
+  const [chatState, setChatState] = useState(() => loadChatState());
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const activeChat = chatState.chats.find(
+    (chat) => chat.id === chatState.activeChatId,
+  );
+  const messages = activeChat?.messages ?? [];
+
+  useEffect(() => {
+    saveChatState(chatState);
+  }, [chatState]);
+
+  function updateChat(id: string, update: (chat: ChatSession) => ChatSession) {
+    setChatState((prev) => ({
+      ...prev,
+      chats: prev.chats.map((chat) => (chat.id === id ? update(chat) : chat)),
+    }));
+  }
+
+  function startNewChat() {
+    if (activeChat?.messages.length === 0) return;
+
+    const chat = createChat();
+    setChatState((prev) => ({
+      chats: [chat, ...prev.chats],
+      activeChatId: chat.id,
+    }));
+    setInput("");
+  }
+
+  function selectChat(id: string) {
+    setChatState((prev) => ({ ...prev, activeChatId: id }));
+    setInput("");
+  }
 
   async function send(question: string) {
     const text = question.trim();
-    if (!text || busy) return;
+    if (!text || busy || !activeChat) return;
 
+    const chatId = activeChat.id;
     const conversation: ChatMessage[] = [
       ...messages
         .filter((message) => message.text.trim())
@@ -132,27 +158,37 @@ export function App() {
       { role: "user", text },
     ];
     const assistantId = crypto.randomUUID();
-    setMessages((prev) => [
-      ...prev,
-      { id: crypto.randomUUID(), role: "user", text },
-      {
-        id: assistantId,
-        role: "assistant",
-        text: "",
-        pending: true,
-        phase: "Planning research…",
-        activity: [],
-      },
-    ]);
+    updateChat(chatId, (chat) => ({
+      ...chat,
+      title: chat.messages.length === 0 ? titleFromMessage(text) : chat.title,
+      updatedAt: Date.now(),
+      messages: [
+        ...chat.messages,
+        { id: crypto.randomUUID(), role: "user", text },
+        {
+          id: assistantId,
+          role: "assistant",
+          text: "",
+          pending: true,
+          phase: "Planning research…",
+          activity: [],
+        },
+      ],
+    }));
     setInput("");
     setBusy(true);
 
     const updateAssistant = (
       update: (message: TranscriptMessage) => TranscriptMessage,
+      touch = false,
     ) => {
-      setMessages((prev) =>
-        prev.map((message) => (message.id === assistantId ? update(message) : message)),
-      );
+      updateChat(chatId, (chat) => ({
+        ...chat,
+        updatedAt: touch ? Date.now() : chat.updatedAt,
+        messages: chat.messages.map((message) =>
+          message.id === assistantId ? update(message) : message,
+        ),
+      }));
     };
 
     let receivedTerminalEvent = false;
@@ -220,21 +256,27 @@ export function App() {
             break;
           case "answer":
             receivedTerminalEvent = true;
-            updateAssistant((message) => ({
-              ...message,
-              text: event.answer,
-              pending: false,
-              phase: "Research complete",
-            }));
+            updateAssistant(
+              (message) => ({
+                ...message,
+                text: event.answer,
+                pending: false,
+                phase: "Research complete",
+              }),
+              true,
+            );
             break;
           case "error":
             receivedTerminalEvent = true;
-            updateAssistant((message) => ({
-              ...message,
-              text: `Something went wrong: ${event.message}`,
-              pending: false,
-              phase: "Research stopped",
-            }));
+            updateAssistant(
+              (message) => ({
+                ...message,
+                text: `Something went wrong: ${event.message}`,
+                pending: false,
+                phase: "Research stopped",
+              }),
+              true,
+            );
             break;
         }
       });
@@ -243,12 +285,15 @@ export function App() {
     } catch (err) {
       if (!receivedTerminalEvent) {
         const message = err instanceof Error ? err.message : String(err);
-        updateAssistant((assistant) => ({
-          ...assistant,
-          text: `Something went wrong: ${message}`,
-          pending: false,
-          phase: "Research stopped",
-        }));
+        updateAssistant(
+          (assistant) => ({
+            ...assistant,
+            text: `Something went wrong: ${message}`,
+            pending: false,
+            phase: "Research stopped",
+          }),
+          true,
+        );
       }
     } finally {
       setBusy(false);
@@ -256,62 +301,72 @@ export function App() {
   }
 
   return (
-    <div className="app">
-      <header>
-        <h1>Rogo Research</h1>
-        <p>Ask a question about a company in our coverage universe.</p>
-      </header>
+    <div className="app-shell">
+      <ChatSidebar
+        chats={chatState.chats}
+        activeChatId={chatState.activeChatId}
+        onNewChat={startNewChat}
+        onSelectChat={selectChat}
+      />
 
-      <div className="transcript">
-        {messages.length === 0 && (
-          <div className="examples">
-            {EXAMPLES.map((example) => (
-              <button key={example} onClick={() => send(example)}>
-                {example}
-              </button>
-            ))}
-          </div>
-        )}
+      <main className="app">
+        <header>
+          <h1>Rogo Research</h1>
+          <p>Ask a question about a company in our coverage universe.</p>
+        </header>
 
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`bubble ${message.role}`}
-            aria-busy={message.pending || undefined}
-          >
-            {message.role === "assistant" ? (
-              <>
-                <ResearchActivity message={message} />
-                {message.text && (
-                  <div className="markdown">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
-                  </div>
-                )}
-              </>
-            ) : (
-              message.text
-            )}
-          </div>
-        ))}
-      </div>
+        <div className="transcript">
+          {messages.length === 0 && (
+            <div className="examples">
+              {EXAMPLES.map((example) => (
+                <button key={example} onClick={() => send(example)}>
+                  {example}
+                </button>
+              ))}
+            </div>
+          )}
 
-      <form
-        className="composer"
-        onSubmit={(e) => {
-          e.preventDefault();
-          send(input);
-        }}
-      >
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask a research question…"
-          disabled={busy}
-        />
-        <button type="submit" disabled={busy}>
-          Send
-        </button>
-      </form>
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`bubble ${message.role}`}
+              aria-busy={message.pending || undefined}
+            >
+              {message.role === "assistant" ? (
+                <>
+                  <ResearchActivity message={message} />
+                  {message.text && (
+                    <div className="markdown">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.text}</ReactMarkdown>
+                    </div>
+                  )}
+                </>
+              ) : (
+                message.text
+              )}
+            </div>
+          ))}
+        </div>
+
+        <form
+          className="composer"
+          onSubmit={(e) => {
+            e.preventDefault();
+            send(input);
+          }}
+        >
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask a research question…"
+            aria-label="Research question"
+            disabled={busy}
+          />
+          <button type="submit" disabled={busy}>
+            Send
+          </button>
+        </form>
+      </main>
     </div>
   );
 }
