@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from "vitest";
+import type { ChatMessage } from "../shared/chat.ts";
 import { runAgent, type AgentEvent } from "./agent.ts";
 
 const mocks = vi.hoisted(() => ({
@@ -58,8 +59,13 @@ it("runs a tool batch concurrently and returns results in request order despite 
     })
     .mockResolvedValueOnce({ content: [{ type: "text", text: "Draft answer" }] });
 
+  const conversation: ChatMessage[] = [
+    { role: "user", text: "Tell me about Acme Corp" },
+    { role: "assistant", text: "Acme Corp is an industrial automation company." },
+    { role: "user", text: "Compare it with Globex Inc" },
+  ];
   const events: AgentEvent[] = [];
-  const run = runAgent("Compare these companies", (event) => events.push(event));
+  const run = runAgent(conversation, (event) => events.push(event));
 
   // All three calls must start before any one of them completes.
   await vi.waitFor(() => expect(mocks.executeTool).toHaveBeenCalledTimes(3));
@@ -71,6 +77,15 @@ it("runs a tool batch concurrently and returns results in request order despite 
 
   await expect(run).resolves.toEqual({ answer: "Draft answer", iterations: 2 });
   expect(mocks.createMessage).toHaveBeenCalledTimes(2);
+
+  const initialRequest = mocks.createMessage.mock.calls[0][0] as {
+    messages: { role: string; content: unknown }[];
+  };
+  expect(initialRequest.messages.slice(0, conversation.length)).toEqual([
+    { role: "user", content: "Tell me about Acme Corp" },
+    { role: "assistant", content: "Acme Corp is an industrial automation company." },
+    { role: "user", content: "Compare it with Globex Inc" },
+  ]);
 
   const request = mocks.createMessage.mock.calls[1][0] as {
     messages: { role: string; content: unknown }[];

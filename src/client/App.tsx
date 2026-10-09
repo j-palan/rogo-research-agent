@@ -1,9 +1,5 @@
 import { useState } from "react";
-
-interface Message {
-  role: "user" | "assistant";
-  text: string;
-}
+import type { ChatMessage } from "../shared/chat.ts";
 
 const EXAMPLES = [
   "Compare Acme and Globex and tell me which one appears to be growing faster.",
@@ -13,14 +9,16 @@ const EXAMPLES = [
 ];
 
 export function App() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function send(question: string) {
-    if (!question.trim() || busy) return;
+    const text = question.trim();
+    if (!text || busy) return;
 
-    setMessages((prev) => [...prev, { role: "user", text: question }]);
+    const conversation: ChatMessage[] = [...messages, { role: "user", text }];
+    setMessages(conversation);
     setInput("");
     setBusy(true);
 
@@ -28,7 +26,7 @@ export function App() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: question }),
+        body: JSON.stringify({ messages: conversation }),
       });
       const data = await res.json();
       setMessages((prev) => [

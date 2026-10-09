@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import type { ChatMessage } from "../shared/chat.ts";
 import { runAgent } from "./agent.ts";
 
 if (!process.env.ANTHROPIC_API_KEY) {
@@ -12,12 +13,34 @@ if (!process.env.ANTHROPIC_API_KEY) {
 const app = express();
 app.use(express.json());
 
+function isChatMessage(value: unknown): value is ChatMessage {
+  if (typeof value !== "object" || value === null) return false;
+
+  const message = value as Partial<ChatMessage>;
+  return (
+    (message.role === "user" || message.role === "assistant") &&
+    typeof message.text === "string" &&
+    message.text.trim().length > 0
+  );
+}
+
 app.post("/api/chat", async (req, res) => {
-  const message = String(req.body.message ?? "");
-  console.log(`\n[chat] ${message}`);
+  const submittedMessages: unknown = req.body.messages;
+  if (
+    !Array.isArray(submittedMessages) ||
+    submittedMessages.length === 0 ||
+    !submittedMessages.every(isChatMessage) ||
+    submittedMessages.at(-1)?.role !== "user"
+  ) {
+    res.status(400).json({ error: "messages must be a non-empty conversation ending with a user message" });
+    return;
+  }
+
+  const messages: ChatMessage[] = submittedMessages;
+  console.log(`\n[chat] ${messages[messages.length - 1].text}`);
 
   try {
-    const result = await runAgent(message, (event) => {
+    const result = await runAgent(messages, (event) => {
       switch (event.type) {
         case "iteration":
           console.log(`[agent] iteration ${event.n}`);

@@ -3,6 +3,7 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import type { ChatMessage } from "../shared/chat.ts";
 import { companies } from "./data.ts";
 import { executeTool, toolSchemas } from "./tools.ts";
 
@@ -43,10 +44,13 @@ function textOf(message: Anthropic.Message): string {
 }
 
 export async function runAgent(
-  question: string,
+  conversation: ChatMessage[],
   onEvent: (event: AgentEvent) => void,
 ): Promise<AgentResult> {
-  const messages: Anthropic.MessageParam[] = [{ role: "user", content: question }];
+  const messages: Anthropic.MessageParam[] = conversation.map(({ role, text }) => ({
+    role,
+    content: text,
+  }));
 
   let answer = "";
   let iterations = 0;
