@@ -58,7 +58,7 @@ Some questions to start with:
 
 ## The code
 
-Nine files matter:
+Key paths:
 
 | File | What it is |
 | --- | --- |
@@ -68,6 +68,8 @@ Nine files matter:
 | `src/server/data.ts` | All the research data. Fictional, local, deterministic |
 | `src/client/App.tsx` | The chat interface |
 | `src/client/main.tsx`, `src/client/styles.css` | Mount point and styling |
+| `src/shared/chat.ts` | Chat types shared by the client and server |
+| `src/evals/research.ts` | Live behavioral evals and latency/tool benchmarks |
 | `vite.config.ts`, `package.json` | Vite dev server proxies `/api` to port 8787 |
 
 There are five fictional companies. The tools are backed entirely by `src/server/data.ts` —
@@ -81,10 +83,19 @@ sleeps for a few hundred milliseconds to stand in for a real API.
 | `npm run dev` | Runs the agent server and the web UI together |
 | `npm run dev:server` | Agent server only, on port 8787 |
 | `npm run dev:web` | Web UI only, on port 5173 |
+| `npm run eval` | Run the live agent eval suite (uses the configured model) |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm test` | Runs Vitest |
 
 The model defaults to `claude-sonnet-5`. Set `ROGO_MODEL` in `.env` to change it.
+
+The eval suite checks factual concepts with deterministic rubrics and reports latency,
+iterations, tool calls and tool failures. It makes real model calls and requires
+`ANTHROPIC_API_KEY`. Run one case by passing its ID, for example:
+
+```bash
+npm run eval -- context-follow-up
+```
 
 ## Submitting
 

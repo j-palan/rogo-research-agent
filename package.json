@@ -6,6 +6,7 @@
     "dev": "concurrently -k -n server,web -c cyan,magenta \"npm:dev:server\" \"npm:dev:web\"",
     "dev:server": "tsx watch src/server/index.ts",
     "dev:web": "vite",
+    "eval": "tsx src/evals/research.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
