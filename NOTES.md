@@ -21,3 +21,4 @@ better follow-up conversations and easier chat organization.
 - Persist chats on the server instead of only in the browser.
 - Add request cancellation and token-by-token answer streaming.
 - Add browser-level tests for the main chat interactions.
+- LLM as jusdge for evals instead of deterministic checks
