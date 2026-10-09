@@ -6,7 +6,9 @@ import { ChatSidebar } from "./ChatSidebar.tsx";
 import { ResearchIcon, SendIcon, SidebarIcon } from "./icons.tsx";
 import {
   createChat,
+  deleteChat,
   loadChatState,
+  renameChat,
   saveChatState,
   titleFromMessage,
   type ChatSession,
@@ -165,6 +167,15 @@ export function App() {
     setChatState((prev) => ({ ...prev, activeChatId: id }));
     setInput("");
     closeSidebarOnMobile();
+  }
+
+  function handleRenameChat(id: string, title: string) {
+    setChatState((prev) => renameChat(prev, id, title));
+  }
+
+  function handleDeleteChat(id: string) {
+    setChatState((prev) => deleteChat(prev, id));
+    if (id === chatState.activeChatId) setInput("");
   }
 
   function closeSidebarOnMobile() {
@@ -333,6 +344,8 @@ export function App() {
         open={sidebarOpen}
         onNewChat={startNewChat}
         onSelectChat={selectChat}
+        onRenameChat={handleRenameChat}
+        onDeleteChat={handleDeleteChat}
         onClose={() => setSidebarOpen(false)}
       />
 
@@ -362,10 +375,6 @@ export function App() {
             <h1>{activeChat?.title ?? "New research"}</h1>
             <p>Company intelligence workspace</p>
           </div>
-          <span className="coverage-status">
-            <span aria-hidden="true" />
-            Research ready
-          </span>
         </header>
 
         <div className={`transcript${messages.length === 0 ? " empty" : ""}`}>
@@ -374,7 +383,6 @@ export function App() {
               <span className="welcome-mark" aria-hidden="true">
                 <ResearchIcon />
               </span>
-              <p className="eyebrow">Research workspace</p>
               <h2 id="welcome-title">What would you like to investigate?</h2>
               <p className="welcome-copy">
                 Ask about companies, compare financial performance, or search filings

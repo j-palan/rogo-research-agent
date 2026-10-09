@@ -58,6 +58,35 @@ export function titleFromMessage(text: string, maxLength = 52): string {
   return `${title.slice(0, maxLength - 1).trimEnd()}…`;
 }
 
+export function renameChat(
+  state: ChatState,
+  chatId: string,
+  title: string,
+): ChatState {
+  const trimmedTitle = title.trim();
+  if (!trimmedTitle) return state;
+
+  return {
+    ...state,
+    chats: state.chats.map((chat) =>
+      chat.id === chatId ? { ...chat, title: trimmedTitle } : chat,
+    ),
+  };
+}
+
+export function deleteChat(state: ChatState, chatId: string): ChatState {
+  if (!state.chats.some((chat) => chat.id === chatId)) return state;
+
+  const chats = state.chats.filter((chat) => chat.id !== chatId);
+  if (chats.length === 0) return createInitialChatState();
+  if (state.activeChatId !== chatId) return { ...state, chats };
+
+  const newestChat = chats.reduce((newest, chat) =>
+    chat.updatedAt > newest.updatedAt ? chat : newest,
+  );
+  return { chats, activeChatId: newestChat.id };
+}
+
 function isTranscriptMessage(value: unknown): value is TranscriptMessage {
   if (typeof value !== "object" || value === null) return false;
   const message = value as Partial<TranscriptMessage>;

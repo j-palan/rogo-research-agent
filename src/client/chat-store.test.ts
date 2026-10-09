@@ -1,7 +1,9 @@
 import { expect, it } from "vitest";
 import {
   createChat,
+  deleteChat,
   loadChatState,
+  renameChat,
   saveChatState,
   titleFromMessage,
   type ChatState,
@@ -42,4 +44,30 @@ it("persists chat sessions and restores a valid active chat", () => {
 
   saveChatState(state, storage);
   expect(loadChatState(storage)).toEqual(state);
+});
+
+it("renames chats without changing their last-used time", () => {
+  const chat = createChat(123, "chat-1");
+  const state: ChatState = { chats: [chat], activeChatId: chat.id };
+
+  expect(renameChat(state, chat.id, "  Acme outlook  ").chats[0]).toEqual({
+    ...chat,
+    title: "Acme outlook",
+  });
+  expect(renameChat(state, chat.id, "   ")).toBe(state);
+});
+
+it("deletes a chat and selects the most recently used remaining chat", () => {
+  const older = createChat(100, "older");
+  const newer = createChat(200, "newer");
+  const active = createChat(300, "active");
+  const state: ChatState = {
+    chats: [older, newer, active],
+    activeChatId: active.id,
+  };
+
+  expect(deleteChat(state, active.id)).toEqual({
+    chats: [older, newer],
+    activeChatId: newer.id,
+  });
 });
