@@ -101,6 +101,7 @@ export async function runAgent(
         onEvent({ type: "tool_start", id: use.id, name: use.name, input: use.input });
 
         let content: string;
+        let isError = false;
         try {
           const output = await executeTool(use.name, use.input as Record<string, unknown>);
           content = JSON.stringify(output);
@@ -111,6 +112,7 @@ export async function runAgent(
             ms: Date.now() - startedAt,
           });
         } catch (err) {
+          isError = true;
           const message = err instanceof Error ? err.message : String(err);
           content = `${use.name} returned: ${message}`;
           onEvent({
@@ -122,7 +124,12 @@ export async function runAgent(
           });
         }
 
-        return { type: "tool_result", tool_use_id: use.id, content };
+        return {
+          type: "tool_result",
+          tool_use_id: use.id,
+          content,
+          ...(isError ? { is_error: true } : {}),
+        };
       }),
     );
 

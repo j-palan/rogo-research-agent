@@ -94,7 +94,12 @@ it("runs a tool batch concurrently and returns results in request order despite 
     role: "user",
     content: [
       { type: "tool_result", tool_use_id: "first", content: '{"company":"Acme Corp"}' },
-      { type: "tool_result", tool_use_id: "second", content: "getFinancials returned: financials unavailable" },
+      {
+        type: "tool_result",
+        tool_use_id: "second",
+        content: "getFinancials returned: financials unavailable",
+        is_error: true,
+      },
       { type: "tool_result", tool_use_id: "third", content: '{"company":"Umbrella Health"}' },
     ],
   });
