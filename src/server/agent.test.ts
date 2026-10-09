@@ -99,7 +99,15 @@ it("runs a tool batch concurrently and returns results in request order despite 
     ],
   });
   expect(events.filter((event) => event.type === "tool_failed")).toEqual([
-    { type: "tool_failed", name: "getFinancials", message: "financials unavailable" },
+    expect.objectContaining({
+      type: "tool_failed",
+      id: "second",
+      name: "getFinancials",
+      message: "financials unavailable",
+    }),
   ]);
-  expect(events.filter((event) => event.type === "tool_end")).toHaveLength(3);
+  expect(events.filter((event) => event.type === "tool_end")).toEqual([
+    expect.objectContaining({ type: "tool_end", id: "third" }),
+    expect.objectContaining({ type: "tool_end", id: "first" }),
+  ]);
 });

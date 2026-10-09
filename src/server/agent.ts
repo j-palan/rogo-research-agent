@@ -3,7 +3,7 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
-import type { ChatMessage } from "../shared/chat.ts";
+import type { AgentProgressEvent, ChatMessage } from "../shared/chat.ts";
 import { companies } from "./data.ts";
 import { executeTool, toolSchemas } from "./tools.ts";
 
@@ -46,11 +46,7 @@ ${companies
   .join("\n")}
 `;
 
-export type AgentEvent =
-  | { type: "iteration"; n: number }
-  | { type: "tool_start"; name: string; input: unknown }
-  | { type: "tool_end"; name: string; ms: number }
-  | { type: "tool_failed"; name: string; message: string };
+export type AgentEvent = AgentProgressEvent;
 
 export interface AgentResult {
   answer: string;
@@ -102,19 +98,30 @@ export async function runAgent(
     const toolResults = await Promise.all(
       toolUses.map(async (use): Promise<Anthropic.ToolResultBlockParam> => {
         const startedAt = Date.now();
-        onEvent({ type: "tool_start", name: use.name, input: use.input });
+        onEvent({ type: "tool_start", id: use.id, name: use.name, input: use.input });
 
         let content: string;
         try {
           const output = await executeTool(use.name, use.input as Record<string, unknown>);
           content = JSON.stringify(output);
+          onEvent({
+            type: "tool_end",
+            id: use.id,
+            name: use.name,
+            ms: Date.now() - startedAt,
+          });
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           content = `${use.name} returned: ${message}`;
-          onEvent({ type: "tool_failed", name: use.name, message });
+          onEvent({
+            type: "tool_failed",
+            id: use.id,
+            name: use.name,
+            message,
+            ms: Date.now() - startedAt,
+          });
         }
 
-        onEvent({ type: "tool_end", name: use.name, ms: Date.now() - startedAt });
         return { type: "tool_result", tool_use_id: use.id, content };
       }),
     );

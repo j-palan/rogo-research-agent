@@ -1,6 +1,6 @@
 import "dotenv/config";
-import express from "express";
-import type { ChatMessage } from "../shared/chat.ts";
+import express, { type Response } from "express";
+import type { ChatMessage, ChatStreamEvent } from "../shared/chat.ts";
 import { runAgent } from "./agent.ts";
 
 if (!process.env.ANTHROPIC_API_KEY) {
@@ -24,6 +24,12 @@ function isChatMessage(value: unknown): value is ChatMessage {
   );
 }
 
+function writeEvent(res: Response, event: ChatStreamEvent) {
+  if (!res.writableEnded && !res.destroyed) {
+    res.write(`${JSON.stringify(event)}\n`);
+  }
+}
+
 app.post("/api/chat", async (req, res) => {
   const submittedMessages: unknown = req.body.messages;
   if (
@@ -39,28 +45,42 @@ app.post("/api/chat", async (req, res) => {
   const messages: ChatMessage[] = submittedMessages;
   console.log(`\n[chat] ${messages[messages.length - 1].text}`);
 
+  res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
   try {
     const result = await runAgent(messages, (event) => {
+      writeEvent(res, event);
+
       switch (event.type) {
         case "iteration":
           console.log(`[agent] iteration ${event.n}`);
           break;
         case "tool_start":
-          console.log(`[tool]  → ${event.name} ${JSON.stringify(event.input)}`);
+          console.log(
+            `[tool:${event.id}]  → ${event.name} ${JSON.stringify(event.input)}`,
+          );
           break;
         case "tool_end":
-          console.log(`[tool]  ← ${event.name} (${event.ms}ms)`);
+          console.log(`[tool:${event.id}]  ← ${event.name} (${event.ms}ms)`);
           break;
         case "tool_failed":
-          console.log(`[tool]  ! ${event.name}: ${event.message}`);
+          console.log(
+            `[tool:${event.id}]  ! ${event.name} (${event.ms}ms): ${event.message}`,
+          );
           break;
       }
     });
 
-    res.json({ answer: result.answer });
+    writeEvent(res, { type: "answer", answer: result.answer });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: String(err) });
+    const message = err instanceof Error ? err.message : String(err);
+    writeEvent(res, { type: "error", message });
+  } finally {
+    res.end();
   }
 });
 
